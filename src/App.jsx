@@ -1,16 +1,14 @@
-import { useState, useEffect, useRef } from "react";
-import { Billboard } from "@react-three/drei";
+import { useEffect } from "react";
 
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { Gltf } from "@react-three/drei";
 import { useThree, useFrame } from "@react-three/fiber";
-import { Vector3 } from "three";
 import { Raycaster } from "three";
 import { ContactShadows } from "@react-three/drei";
+import SoundSphere from "./components/soundSphere.jsx";
 
 import "./App.css";
-import { Group } from "three/examples/jsm/libs/tween.module.js";
 
 function CameraSetup() {
   const camera = useThree().camera;
@@ -27,25 +25,6 @@ function Box({ x, y, z, meshColor }) {
       {/* <boxGeometry /> */}
       <meshLambertMaterial color={meshColor} />
     </mesh>
-  );
-}
-
-function Sphere({ x, y, z, meshColor }) {
-  const borderRef = useRef();
-  return (
-    <group position={[x, y, z]}>
-      <mesh>
-        <sphereGeometry args={[0.2, 32, 32]} />
-        <meshStandardMaterial color={meshColor} />
-      </mesh>
-
-      <Billboard>
-        <mesh ref={borderRef}>
-          <ringGeometry args={[0.23, 0.26, 32]} />
-          <meshBasicMaterial color={meshColor} transparent opacity={0.6} />
-        </mesh>
-      </Billboard>
-    </group>
   );
 }
 
@@ -98,7 +77,11 @@ function App() {
             <Box x={-1} y={0} z={5} meshColor={"black"} />
             <Box x={3} y={0} z={5} meshColor={"pink"} />
             {/* SPHERE */}
-            <Sphere x={3} y={0} z={2} meshColor={"purple"} />
+            <SoundSphere
+              position={[3, 0, 2]}
+              meshColor={"purple"}
+              soundName={"soundEffects.mp3"}
+            />
 
             <Gltf src="3d/spaceX.glb" position={[0, -0.5, 0]} scale={3} />
 
