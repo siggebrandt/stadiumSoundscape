@@ -33,7 +33,7 @@ function App() {
           alignItems: "center",
           width: "100%",
           minHeight: "100dvh",
-          backgroundColor: "#000",
+          backgroundColor: "#00000000",
         }}
       >
         <div
@@ -46,11 +46,10 @@ function App() {
         >
           {/* <div style={{ width: "100vw", maxWidth: "", height: "100vh" }}> */}
           <Canvas
+            style={{ background: "red" }}
             camera={{
               //lookAt: [0, 0, 0],
-              position: [5, 6, 6], // x y z /* [4.5, 0, 4] */,
-              fov: 80,
-              rotation: [600, 0, 0],
+              position: [5, 5, 5], // x y z /* [4.5, 0, 4] */,
             }}
           >
             <CameraControl />
@@ -66,8 +65,16 @@ function App() {
             {/* BOXES Row 3 */}
             <Box x={-1} y={0} z={5} meshColor={"black"} />
             <Box x={3} y={0} z={5} meshColor={"pink"} />
-            <Gltf src="3d/spaceTrue.glb" position={[0, -0.5, 0]} />
-            <OrbitControls enableZoom={true} enableRotate={true} />
+            <Gltf
+              src="3d/spaceTrue.glb"
+              position={[0, -0.5, 0]}
+              backgroundColor="red"
+            />
+            <OrbitControls
+              enableZoom={false}
+              enableRotate={false}
+              enablePan={false}
+            />
           </Canvas>
         </div>
       </div>
