@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, ContactShadows, Environment } from "@react-three/drei";
 import { Gltf } from "@react-three/drei";
 import { useThree, useFrame } from "@react-three/fiber";
 import { Raycaster } from "three";
-import { ContactShadows } from "@react-three/drei";
 import SoundSphere from "./components/soundSphere.jsx";
+import * as THREE from "three";
 
 import "./App.css";
 
@@ -56,34 +56,37 @@ function App() {
               position: [4.5, 2.8, 4.5], // x y z
               fov: 60,
             }}
+            gl={{ toneMapping: THREE.ACESFilmicToneMapping }}
           >
             <CameraSetup />
             <ambientLight intensity={1} />
+            <Environment preset="city" />
             <ContactShadows
-              position={[0, 0, 0]}
-              opacity={1}
-              scale={1}
-              blur={1}
+              position={[0, 0.01, 0]}
+              opacity={0.6}
+              scale={10}
+              blur={1.5}
+              far={4}
             />
 
-            {/* BOXES */}
-            {/* BOXES Row 1 */}
-            <Box x={-1} y={0} z={-2} meshColor={"red"} />
-            <Box x={3} y={0} z={-2} meshColor={"blue"} />
-            {/* BOXES Row 2 */}
-            <Box x={-1} y={0} z={1.5} meshColor={"green"} />
-            <Box x={3} y={0} z={1.5} meshColor={"white"} />
+            {/* SPHERES */}
+            {/* SPHERES Row 1 */}
+            <SoundSphere position={[-1, 0, -2]} color={"red"} />
+            <SoundSphere position={[3, 0, -2]} color={"blue"} />
+            {/* Row 2 */}
+            <SoundSphere position={[-1, 0, 1.5]} color={"green"} />
+            <SoundSphere position={[3, 0, 1.5]} color={"white"} />
             {/* BOXES Row 3 */}
-            <Box x={-1} y={0} z={5} meshColor={"black"} />
-            <Box x={3} y={0} z={5} meshColor={"pink"} />
+            <SoundSphere position={[-1, 0, 5]} color={"black"} />
+            <SoundSphere position={[3, 0, 5]} color={"pink"} />
             {/* SPHERE */}
-            <SoundSphere
+            {/* <SoundSphere
               position={[3, 0, 2]}
-              meshColor={"purple"}
+              color={"purple"}
               soundName={"soundEffects.mp3"}
-            />
+            /> */}
 
-            <Gltf src="3d/spaceX.glb" position={[0, -0.5, 0]} scale={3} />
+            <Gltf src="3d/spaceX.glb" position={[0, -0.3, 0]} scale={3} />
 
             {/* remove after testing */}
             <OrbitControls

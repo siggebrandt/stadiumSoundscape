@@ -1,69 +1,146 @@
-import { useRef } from "react";
+import React, { useRef, useState, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Billboard } from "@react-three/drei";
+import * as THREE from "three";
 
-export default function SoundSphere({ position, color, soundName }) {
-  const borderRef = useRef();
-  let isPlaying = false;
+export default function SoundSphere({
+  position,
+  color,
+  soundName = "soundEffects.mp3",
+}) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const pointsRef = useRef();
+  const coreRef = useRef();
 
-  const audioRef = useRef();
-  const analyserRef = useRef();
-  const dataArrayRef = useRef();
+  // Ljudmotor refs
+  const audioRef = useRef(null);
+  const ctxRef = useRef(null);
+  const analyserRef = useRef(null);
+  const dataArrayRef = useRef(null);
 
-  // Sound Engine
-  function togglePlay() {
-    if (!audioRef.current) /* true */ {
+  // 1. Skapa en sfär med tusentals partikel-punkter
+  const sphereGeom = useMemo(() => new THREE.SphereGeometry(0.35, 72, 72), []);
+  const origPositions = useMemo(
+    () => sphereGeom.attributes.position.array.slice(),
+    [sphereGeom],
+  );
+
+  // 2. Play / Pause
+  function togglePlay(e) {
+    e.stopPropagation();
+
+    if (!audioRef.current) {
       const audio = new Audio(`/sound/${soundName}`);
-      const ctx = new (window.AudioContext || window.webkitAudioContext)(); // audio context // ??
+      audio.crossOrigin = "anonymous";
+      audio.loop = true;
+
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const source = ctx.createMediaElementSource(audio);
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 64; // ??
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.8;
 
-      // (connector) mp3 -> analyser -> utgång
       source.connect(analyser);
       analyser.connect(ctx.destination);
 
       audioRef.current = audio;
+      ctxRef.current = ctx;
       analyserRef.current = analyser;
-      dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount); // ??
+      dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
     }
 
-    // PLAY/ PAUSE
+    if (ctxRef.current.state === "suspended") {
+      ctxRef.current.resume();
+    }
+
     if (isPlaying) {
       audioRef.current.pause();
-      isPlaying = false;
+      setIsPlaying(false);
     } else {
-      audioRef.current.play();
-      isPlaying = true;
+      audioRef.current.play().catch(console.error);
+      setIsPlaying(true);
     }
   }
 
-  useFrame(() => {
-    if (!isPlaying || !analyserRef.current || !borderRef.current) return;
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) audioRef.current.pause();
+    };
+  }, []);
 
+  // 3. Få partiklarna att vibrera i stående ljudvågor (Cymatics)
+  useFrame(({ clock }) => {
+    if (!isPlaying || !analyserRef.current || !dataArrayRef.current) return;
     analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-    const basVolym = dataArrayRef.current[0] / 255;
+    const data = dataArrayRef.current;
+    const geom = pointsRef.current.geometry;
+    const pos = geom.attributes.position;
+    const count = pos.count;
+    const time = clock.getElapsedTime() * 1.5;
+    // 1. Räkna ut bas och mellanregister FÖRST
+    const bas = data[0] / 255;
+    const mellan = (data[10] || 0) / 128;
+    // 2. Skala nu kärnan med basen!
+    if (coreRef.current) {
+      coreRef.current.scale.setScalar(1 + bas * 0.25);
+    }
 
-    borderRef.current.scale.setScalar(1 + basVolym * 0.9); // managing Billboard
+    for (let i = 0; i < count; i++) {
+      const ox = origPositions[i * 3];
+      const oy = origPositions[i * 3 + 1];
+      const oz = origPositions[i * 3 + 2];
+
+      // Normaliserad 3D-riktning
+      const len = Math.sqrt(ox * ox + oy * oy + oz * oz);
+      const nx = ox / len;
+      const ny = oy / len;
+      const nz = oz / len;
+
+      // Akustiska nod-linjer (skapar de där elektriska ådrorna från din bild!)
+      const cymaticWave =
+        Math.sin(nx * 8 + time) *
+        Math.cos(ny * 8 - time * 0.5) *
+        Math.sin(nz * 8 + time);
+
+      // Partiklarna dras mot nod-linjerna vid ljud
+      const displacement = 1 + bas * 0.4 + cymaticWave * (0.15 + mellan * 0.25);
+
+      pos.setXYZ(i, ox * displacement, oy * displacement, oz * displacement);
+    }
+
+    pos.needsUpdate = true;
   });
 
   return (
     <group position={position}>
+      {/* Klick-fångare (osynlig sfär inuti så den är lätt att klicka på) */}
+      {/* DEN INRE LYSANDE KÄRNAN */}
       <mesh
+        ref={coreRef}
         onClick={togglePlay}
         onPointerOver={() => (document.body.style.cursor = "pointer")}
         onPointerOut={() => (document.body.style.cursor = "auto")}
       >
-        <sphereGeometry args={[0.2, 32, 32]} />
-        <meshStandardMaterial color={color} />
+        <sphereGeometry args={[0.14, 32, 32]} />
+        <meshBasicMaterial
+          color={color}
+          transparent={true}
+          opacity={isPlaying ? 0.6 : 0.25} // Mjuk och halvgenomskinlig
+          blending={THREE.AdditiveBlending} // NormalBlending
+          depthWrite={false}
+        />
       </mesh>
 
-      <Billboard>
-        <mesh ref={borderRef}>
-          <ringGeometry args={[0.23, 0.26, 32]} />
-          <meshBasicMaterial color={color} transparent opacity={0.6} />
-        </mesh>
-      </Billboard>
+      {/* DET AKUSTISKA PARTIKEL-KLOTET */}
+      <points ref={pointsRef} geometry={sphereGeom}>
+        <pointsMaterial
+          color={color}
+          size={0.012} // Små distinkta ljudprickar
+          transparent={false}
+          opacity={2}
+          blending={THREE.AdditiveBlending} // NormalBlending || AdditiveBlending
+          depthWrite={false}
+        />
+      </points>
     </group>
   );
 }
